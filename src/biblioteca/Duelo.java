@@ -39,6 +39,24 @@ public class Duelo {
         duelo.setvisitante(loc);
     }
 
+    public String textoDuelo(){
+        String txt = "";
+        if (this.getgLoc() == -1) {//goles de local -1 es el valor predeterminado antes de jugar el partido
+                    txt = this.getlocal().getNombre() + " - " + this.getvisitante().getNombre();
+        } else {
+            if (this.getgLoc() > this.getgVis()) {
+                txt = "👑 " + this.getlocal().getNombre() + " " + this.getgLoc() + " - " + this.getgVis() + " " + this.getvisitante().getNombre();
+            } else if (this.getgLoc() < this.getgVis()) {
+                txt = this.getlocal().getNombre() + " " + this.getgLoc() + " - " + this.getgVis() + " " + this.getvisitante().getNombre() + " 👑";
+            } else {
+                txt = this.getlocal().getNombre() + " " + this.getgLoc() + " - " + this.getgVis() + " " + this.getvisitante().getNombre();
+            }
+        }
+        return txt;
+    }
+
+    
+
     public Duelo intercambiarLocalia(){
         Equipo vis = this.visitante;
         Equipo loc = this.local;

@@ -2,35 +2,206 @@ package biblioteca;
 
 import java.awt.Image;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.Random;
 
 import javax.swing.ImageIcon;
 
 public class Equipo {
     private String nombre;
-    private int partidosJugados = 0, partidosGanados = 0, partidosEmpatados = 0, partidosPerdidos = 0, golesFavor = 0, golesContra = 0, difGol = 0, puntos;
-    
+    private int ranking;
+    private String confederacion;
+    private int bombo;
+    private ImageIcon img;
+    private int partidosJugados = 0, partidosGanados = 0, partidosEmpatados = 0, partidosPerdidos = 0, golesFavor = 0, golesContra = 0, difGol = 0, puntos = 0;
     private int posActual = -1, posAnterior = -1;
     private ImageIcon estado;
     private LinkedList<ImageIcon> ultimosResultados = new LinkedList<>();
+
+    public Equipo(){}
     
+    public Equipo(String nombre, int ranking, String confederacion) {
+        this.nombre = nombre;
+        this.ranking = ranking;
+        this.puntos = 0;
+        this.confederacion = confederacion;
+        ImageIcon iconoOriginal1 = new ImageIcon(Interfaz.class.getResource("/images/sinjugar.png"));
+        Image imgEscalada1 = iconoOriginal1.getImage().getScaledInstance(13,13, Image.SCALE_SMOOTH);
+        for (int i = 0; i < 5; i++) {
+            this.ultimosResultados.add(new ImageIcon(imgEscalada1));
+        }
+
+        actualizarImg(nombre);
+        if (this.img == null) {
+            if (nombre.substring(0, 3).equals("FIFA")) {
+                actualizarImg("fifa");
+            } else if (nombre.substring(0, 3).equals("UEFA")) {
+                actualizarImg("uefa");
+            } else {
+                System.out.println("No se encontró imagen para el equipo: " + nombre);
+            }
+        }
+    }
+
+    public Equipo(String nombre, int ranking, String confederacion, String ruta) {
+        this.nombre = nombre;
+        this.ranking = ranking;
+        this.puntos = 0;
+        this.confederacion = confederacion;
+
+        ImageIcon iconoOriginal1 = new ImageIcon(Interfaz.class.getResource("/images/sinjugar.png"));
+        Image imgEscalada1 = iconoOriginal1.getImage().getScaledInstance(13,13, Image.SCALE_SMOOTH);
+        for (int i = 0; i < 5; i++) {
+            this.ultimosResultados.add(new ImageIcon(imgEscalada1));
+        }
+        
+        ImageIcon iconoOriginal = new ImageIcon(getClass().getResource(ruta));
+        Image imgOriginal = iconoOriginal.getImage();
+        int anchoOriginal = iconoOriginal.getIconWidth();
+        int altoOriginal = iconoOriginal.getIconHeight();
+        int nuevoAncho = 24;
+        int nuevoAlto = (nuevoAncho * altoOriginal) / anchoOriginal;
+        Image imgEscalada = imgOriginal.getScaledInstance(nuevoAncho, nuevoAlto, Image.SCALE_SMOOTH);
+        this.img = new ImageIcon(imgEscalada);
     
-    public Equipo(String nombre, int puntos) {
+    }
+
+    public Equipo(String nombre, int puntos, int ranking) {
         this.nombre = nombre;
         this.puntos = puntos;
+        this.ranking = ranking;
         ImageIcon iconoOriginal = new ImageIcon(Interfaz.class.getResource("/images/sinjugar.png"));
         Image imgEscalada = iconoOriginal.getImage().getScaledInstance(13,13, Image.SCALE_SMOOTH);
         for (int i = 0; i < 5; i++) {
             this.ultimosResultados.add(new ImageIcon(imgEscalada));
         }
+        actualizarImg(nombre);
+        if (this.img == null) {
+            if (nombre.substring(0, 4).equals("FIFA")) {
+                actualizarImg("fifa");
+            } else if (nombre.substring(0, 4).equals("UEFA")) {
+                actualizarImg("uefa");
+            } else {
+                System.out.println("No se encontró imagen para el equipo: " + nombre);
+            }
+        }
     }
+
+    public void actualizarImg(String nombre) {
+        try {
+            ImageIcon iconoOriginal = new ImageIcon(getClass().getResource("/images/banderas/" + nombre + ".png"));
+            Image imgOriginal = iconoOriginal.getImage();
+            int anchoOriginal = iconoOriginal.getIconWidth();
+            int altoOriginal = iconoOriginal.getIconHeight();
+            int nuevoAlto = 15;
+            int nuevoAncho = (nuevoAlto * anchoOriginal) / altoOriginal;
+            Image imgEscalada = imgOriginal.getScaledInstance(nuevoAncho, nuevoAlto, Image.SCALE_SMOOTH);
+            this.img = new ImageIcon(imgEscalada);
+        } catch (NullPointerException e) {
+            this.img = null;
+        }
+    }
+
+    
     public static void statsGoles(Equipo equipo, int goles, int golesContra) {
         equipo.golesFavor = equipo.golesFavor + goles;
         equipo.golesContra = equipo.golesContra + golesContra;
         equipo.difGol = equipo.golesFavor - equipo.golesContra;
     }
+
+    public static int[] simularPartido(Equipo eqA, Equipo eqB) {
+        // 1. Invertimos la diferencia: Si eqA es puesto 5 y eqB es puesto 50, 
+        // la diferencia debe ser positiva para el equipo A (mejor ranking).
+        int diferencia = eqB.getRanking() - eqA.getRanking();
+
+        double ventajaA = 0;
+        double ventajaB = 0;
+
+        // 2. Aplicamos la ventaja al equipo con el número de ranking más bajo
+        // He ajustado el divisor a 30. Con 15, un puesto 1 vs un puesto 31 
+        // daría +2 goles de ventaja base, lo cual es mucho. Con 30 es más equilibrado.
+        if (diferencia > 0) {
+            // eqA es mejor (ej: 50 - 5 = 45 de ventaja)
+            ventajaA = diferencia / 30.0; 
+        } else {
+            // eqB es mejor (ej: 5 - 50 = -45 -> ventaja de 45 para B)
+            ventajaB = Math.abs(diferencia) / 30.0;
+        }
+
+        // 3. Generar goles
+        int golesA = generarGoles(ventajaA);
+        int golesB = generarGoles(ventajaB);
+
+        String res = String.format("%s %d - %d %s", eqA.getNombre(), golesA, golesB, eqB.getNombre());
+        System.out.println(res);
+
+        int[] goles = {golesA,golesB};
+
+        return goles;
+    }
+
+    public static void ordenarEquiposBurbuja(ArrayList<Equipo> equipos) {
+        int n = equipos.size();
+        boolean intercambiado;
+        
+        for (int i = 0; i < n - 1; i++) {
+            intercambiado = false;
+            
+            for (int j = 0; j < n - i - 1; j++) {
+                Equipo equipo1 = equipos.get(j);
+                Equipo equipo2 = equipos.get(j + 1);
+                
+                // Comparar por puntos (descendente)
+                if (equipo1.getPuntos() < equipo2.getPuntos()) {
+                    Collections.swap(equipos, j, j + 1);
+                    intercambiado = true;
+                } 
+                // Si hay empate en puntos
+                else if (equipo1.getPuntos() == equipo2.getPuntos()) {
+                    
+                    // Comparar por diferencia de goles (descendente)
+                    if (equipo1.getDifGol() < equipo2.getDifGol()) {
+                        Collections.swap(equipos, j, j + 1);
+                        intercambiado = true;
+                    }
+                    // Si hay empate en diferencia de goles
+                    else if (equipo1.getDifGol() == equipo2.getDifGol()) {
+                        
+                        // Comparar por goles a favor (descendente)
+                        if (equipo1.getGolesFavor() < equipo2.getGolesFavor()) {
+                            Collections.swap(equipos, j, j + 1);
+                            intercambiado = true;
+                        }
+                        
+                    }
+                }
+            }
+            
+            // Si no hubo intercambios, el array ya está ordenado
+            if (!intercambiado) {
+                break;
+            }
+        }
+    }
+
+    private static int generarGoles(double ventaja) {
+        // El factor 1.2 es la base de goles aleatorios + la ventaja por ranking
+        double lambda = 1.1 + ventaja; 
+        int goles = 0;
+        double p = Math.exp(-lambda);
+        double f = p;
+        final Random random = new Random();
+        double u = random.nextDouble();
+
+        while (u > f) {
+            goles++;
+            p *= lambda / goles;
+            f += p;
+        }
+        return goles;
+    }
+
 
     public static void jugarPartido(Equipo local, Equipo visitante, int golesLocal, int golesVisitante) {
         local.partidosJugados++;
@@ -77,57 +248,7 @@ public class Equipo {
             this.estado = new ImageIcon(imgEscalada);
         }
     }
-    public static void ordenarEquiposBurbuja(ArrayList<Equipo> equipos) {
-        int n = equipos.size();
-        boolean intercambiado;
-        
-        for (int i = 0; i < n - 1; i++) {
-            intercambiado = false;
-            
-            for (int j = 0; j < n - i - 1; j++) {
-                Equipo equipo1 = equipos.get(j);
-                Equipo equipo2 = equipos.get(j + 1);
-                
-                // Comparar por puntos (descendente)
-                if (equipo1.getPuntos() < equipo2.getPuntos()) {
-                    Collections.swap(equipos, j, j + 1);
-                    intercambiado = true;
-                } 
-                // Si hay empate en puntos
-                else if (equipo1.getPuntos() == equipo2.getPuntos()) {
-                    
-                    // Comparar por diferencia de goles (descendente)
-                    if (equipo1.getDifGol() < equipo2.getDifGol()) {
-                        Collections.swap(equipos, j, j + 1);
-                        intercambiado = true;
-                    }
-                    // Si hay empate en diferencia de goles
-                    else if (equipo1.getDifGol() == equipo2.getDifGol()) {
-                        
-                        // Comparar por goles a favor (descendente)
-                        if (equipo1.getGolesFavor() < equipo2.getGolesFavor()) {
-                            Collections.swap(equipos, j, j + 1);
-                            intercambiado = true;
-                        }
-                        // Si hay empate en goles a favor
-                        else if (equipo1.getGolesFavor() == equipo2.getGolesFavor()) {
-                            
-                            // Comparar por nombre (ascendente - alfabético)
-                            if (equipo1.getNombre().compareToIgnoreCase(equipo2.getNombre()) > 0) {
-                                Collections.swap(equipos, j, j + 1);
-                                intercambiado = true;
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // Si no hubo intercambios, el array ya está ordenado
-            if (!intercambiado) {
-                break;
-            }
-        }
-    }
+    
     public void actualizarUltimosResultados(String resultadoActual) {
         String rutaIcono = "";
         boolean error = false;
@@ -149,14 +270,47 @@ public class Equipo {
         }
             
     }
-        
 
     public String getNombre() {
         return nombre;
     }
+
     public void setNombre(String nombre) {
         this.nombre = nombre;
     }
+
+    public int getRanking() {
+        return ranking;
+    }
+
+    public void setRanking(int ranking) {
+        this.ranking = ranking;
+    }
+
+    public String getConfederacion() {
+        return confederacion;
+    }
+
+    public void setConfederacion(String confederacion) {
+        this.confederacion = confederacion;
+    }
+
+    public int getBombo() {
+        return bombo;
+    }
+
+    public void setBombo(int bombo) {
+        this.bombo = bombo;
+    }
+
+    public ImageIcon getImg() {
+        return img;
+    }
+
+    public void setImg(ImageIcon img) {
+        this.img = img;
+    }
+        
     public int getPartidosJugados() {
         return partidosJugados;
     }
@@ -229,6 +383,4 @@ public class Equipo {
     public void setUltimosResultados(LinkedList<ImageIcon> ultimosResultados) {
         this.ultimosResultados = ultimosResultados;
     }
-    
-} 
-    
+}

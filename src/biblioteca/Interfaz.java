@@ -4,6 +4,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.SwingConstants;
@@ -21,17 +22,20 @@ import java.awt.event.ActionListener;
 import java.util.ArrayList;
 
 
-public class Interfaz {
-    public static JButton mostrarMasMenosButton = new JButton("Ver +");
-    public static JPanel pCentral = new JPanel(new BorderLayout());
-    public static JFrame ventanaPrincipal = new JFrame("Tabla de Posiciones - Eliminatorias");
+public class Interfaz extends JFrame {
+    public JButton mostrarMasMenosButton = new JButton("Ver +");
+    public JPanel pCentral = new JPanel(new BorderLayout());
 
-    public static void generarInterfaz(ArrayList<Equipo> equipos){
+    public Interfaz(){
+
+    }
+
+    public Interfaz(Grupo gr){
+        this.setTitle("Posiciones - Grupo " + gr.getNombre());
         FondoPanel panel = new FondoPanel("/images/balon.png");
-        ventanaPrincipal.setContentPane(panel);
+        this.setContentPane(panel);
 
-        ventanaPrincipal.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        ventanaPrincipal.setLayout(new BorderLayout());
+        this.setLayout(new BorderLayout());
         
         JPanel pTabla = new JPanel();
         pTabla.setLayout(new GridBagLayout());
@@ -43,13 +47,13 @@ public class Interfaz {
         JButton[] botonesFechas = new JButton[18];
         
         // Arreglo 2D para los labels de la tabla
-        JLabel[][] tablaLabels = new JLabel[10][14];
+        JLabel[][] tablaLabels = new JLabel[10][15];
         
             // Inicializar la tabla
-            ordenarTabla(equipos, tablaLabels, pTabla, mostrarMasMenosButton);
-            ventanaPrincipal.setSize(270,400);
-            ventanaPrincipal.setLocationRelativeTo(null);
-            ventanaPrincipal.repaint();
+            ordenarTabla(gr.getEquipoList(), tablaLabels, pTabla);
+            this.setSize(400,400);
+            this.setLocationRelativeTo(null);
+            this.repaint();
             
         // Crear botones "Nueva Fecha" para cada fecha
         for (int i = 0; i < 18; i++) {
@@ -57,7 +61,7 @@ public class Interfaz {
             botonesFechas[i] = new JButton("Fecha " + (i + 1));
             botonesFechas[i].addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
-                    Bib.botonFecha(Data.getCalendarioList().get(fecha), equipos, tablaLabels, pTabla, fecha, botonesFechas);
+                    Bib.botonFecha(gr.getCalendarioList().get(fecha), tablaLabels, pTabla, fecha, botonesFechas, gr);
                 }
             });
             panelBotones.add(botonesFechas[i]);
@@ -67,14 +71,40 @@ public class Interfaz {
         //Boton de calendario
         JButton calendarioButton = new JButton("Calendario");
         panelBotones.add(calendarioButton);
-        calendarioButton.addActionListener(_->{
-            mostrarCalendario(Data.getCalendarioList());
+        calendarioButton.addActionListener(__->{
+            mostrarCalendario(gr.getCalendarioList());
         });
         botonesFechas[0].setVisible(true);
 
         //boton ver +/-
-        mostrarMasMenosButton.addActionListener(_ -> {
-            verMasMenos(tablaLabels, pTabla, equipos, mostrarMasMenosButton, ventanaPrincipal);
+        mostrarMasMenosButton.addActionListener(e -> {
+            verMasMenos(tablaLabels, pTabla, gr.getEquipoList());
+        });
+
+        JButton azarBtn = new JButton("Jugar auto.");
+        
+        panelBotones.add(azarBtn);
+        azarBtn.addActionListener(e->{
+            if (gr.getEquipoList().get(0).getPartidosJugados() == 18) {
+                azarBtn.setEnabled(false);
+                JOptionPane.showMessageDialog(null, "No se pueden Re-Jugar los partidos", "Excepcion de entrada", JOptionPane.ERROR_MESSAGE);
+            } else {
+                for (ArrayList<Duelo> fecha : gr.getCalendarioList()) {
+                    System.out.println("---------------");
+                    for (Duelo dl : fecha) {
+                        if (dl.getgLoc() == -1) {
+                            int[] goles = Equipo.simularPartido(dl.getlocal(), dl.getvisitante());
+                            Bib.asignarGolesADuelo(dl.getlocal(), dl.getvisitante(), gr.getCalendarioList().indexOf(fecha), goles[0], goles[1], gr.getCalendarioList());
+                            Equipo.jugarPartido(dl.getlocal(), dl.getvisitante(), goles[0], goles[1]);
+                            
+                            gr.pantalla.setVisible(true);
+                            azarBtn.setEnabled(false);
+                        }
+                        botonesFechas[gr.getCalendarioList().indexOf(fecha)].setVisible(false);
+                    }
+                }
+                gr.pantalla.ordenarTabla(gr.getEquipoList(), tablaLabels, pTabla);
+            }
         });
 
         //Panel sur
@@ -92,26 +122,24 @@ public class Interfaz {
         pSouth.setBackground(new Color(0,0,0, 50));
         panelBotones.setOpaque(false);
 
-        ventanaPrincipal.add(panelBotones, BorderLayout.NORTH);
-        ventanaPrincipal.add(pCentral, BorderLayout.CENTER);
-        ventanaPrincipal.add(pSouth, BorderLayout.SOUTH);
+        this.add(panelBotones, BorderLayout.NORTH);
+        this.add(pCentral, BorderLayout.CENTER);
+        this.add(pSouth, BorderLayout.SOUTH);
         
-        
-        ventanaPrincipal.setVisible(true);
-        ventanaPrincipal.setLocationRelativeTo(null);
+        this.setLocationRelativeTo(null);
     }
 
-    public static void mostrarCalendario(ArrayList<ArrayList<Duelo>> calendarioList){
+    public void mostrarCalendario(ArrayList<ArrayList<Duelo>> calendarioList){
         JFrame calendarioFrame = new JFrame("Calendario - Eliminatorias");
         calendarioFrame.setSize(250, 300);
 
-        JPanel[] fechasPanel = new JPanel[Data.getCalendarioList().size()];//cuantos cuadros de fecha se generan / cuantas fechas hay
+        JPanel[] fechasPanel = new JPanel[calendarioList.size()];//cuantos cuadros de fecha se generan / cuantas fechas hay
 
         JPanel fechas = new JPanel(new GridLayout(fechasPanel.length,1));
 
         for (int i = 0; i < calendarioList.size(); i++) {
             fechasPanel[i] = new JPanel();
-            fechasPanel[i].setLayout(new GridLayout(Data.getCalendarioList().get(i).size()+1,1)); //se generan los partidos de la fecha + el titulo
+            fechasPanel[i].setLayout(new GridLayout(calendarioList.get(i).size()+1,1)); //se generan los partidos de la fecha + el titulo
             JLabel labelfecha = new JLabel("FECHA " + (i+1), SwingConstants.CENTER);
             labelfecha.setOpaque(true);
             labelfecha.setBackground(new Color(193,193,193));
@@ -138,43 +166,49 @@ public class Interfaz {
         calendarioFrame.setLocationRelativeTo(null);
     }
 
-    public static void verMasMenos(JLabel[][] tablaLabels, JPanel pTabla, ArrayList<Equipo> equipos, JButton btn, JFrame ventanaPrincipal){
-        if (btn.getText().equals("Ver +")) {// intercambiar texto del boton
-                btn.setText("Ver -");
-            } else if (btn.getText().equals("Ver -")) {
-                btn.setText("Ver +");
+    public void verMasMenos(JLabel[][] tablaLabels, JPanel pTabla, ArrayList<Equipo> equipos){
+        if (this.mostrarMasMenosButton.getText().equals("Ver +")) {// intercambiar texto del boton
+                this.mostrarMasMenosButton.setText("Ver -");
+            } else if (this.mostrarMasMenosButton.getText().equals("Ver -")) {
+                this.mostrarMasMenosButton.setText("Ver +");
             }
-            mostrarTabla(tablaLabels, pTabla, equipos, btn);
+            this.mostrarTabla(tablaLabels, pTabla, equipos);
                 pTabla.revalidate();
                 pTabla.repaint();
-                ventanaPrincipal.setLocationRelativeTo(null);
-                ventanaPrincipal.repaint();
+                this.setLocationRelativeTo(null);
+                this.repaint();
 
-            if (btn.getText().equals("Ver -")) {  
-                ventanaPrincipal.setSize(400,400);
-                ventanaPrincipal.setLocationRelativeTo(null);    
-            } else if (btn.getText().equals("Ver +")) {
-                ventanaPrincipal.setSize(270,400); 
-                ventanaPrincipal.setLocationRelativeTo(null);   
+            if (this.mostrarMasMenosButton.getText().equals("Ver -")) {  
+                this.setSize(500,400);
+                this.setLocationRelativeTo(null);
+                this.revalidate();
+                this.repaint();
+            } else if (this.mostrarMasMenosButton.getText().equals("Ver +")) {
+                this.setSize(400,400); 
+                this.setLocationRelativeTo(null);
+                this.revalidate();
+                this.repaint();
             }
     }
 
-    public static void ordenarTabla(ArrayList<Equipo> equipos, JLabel[][] tablaLabels, JPanel tabla, JButton maxOMini) {
+    public void ordenarTabla(ArrayList<Equipo> equipos, JLabel[][] tablaLabels, JPanel tabla) {
         // Guardar posición anterior
         for (int i = 0; i < equipos.size(); i++) {
             equipos.get(i).setPosAnterior(i);
         }
-        Equipo.ordenarEquiposBurbuja(equipos);
+        Grupo.ordenarEquiposBurbuja(equipos);
         // Actualizar posiciones DESPUÉS de ordenar y asignar estado
         for (int i = 0; i < equipos.size(); i++) {
             equipos.get(i).setPosActual(i);
             equipos.get(i).actualizarEstado();
             
         }
-        mostrarTabla(tablaLabels, tabla, equipos, maxOMini);
+        this.mostrarTabla(tablaLabels, tabla, equipos);
+        tabla.revalidate();
+        tabla.repaint();
     }
 
-    public static void mostrarTabla(JLabel[][] tablaLabels, JPanel tabla, ArrayList<Equipo> equipos, JButton maxOMini){
+    public void mostrarTabla(JLabel[][] tablaLabels, JPanel tabla, ArrayList<Equipo> equipos){
         
         GridBagConstraints rules = new GridBagConstraints();
 
@@ -187,7 +221,7 @@ public class Interfaz {
         rules.gridheight = 1;
         rules.gridwidth = 1;
 
-        if (maxOMini.getText().equals("Ver -")) { //si el boton dice ver menos entonces esta seleccionada la tabla grande
+        if (this.mostrarMasMenosButton.getText().equals("Ver -")) { //si el boton dice ver menos entonces esta seleccionada la tabla grande
                 titulosLabel[0] = new JLabel("Equipo", 0);
                 titulosLabel[1] = new JLabel("PJ", 0);
                 titulosLabel[2] = new JLabel("PG", 0);
@@ -199,8 +233,18 @@ public class Interfaz {
                 titulosLabel[8] = new JLabel("Puntos", 0);
                 titulosLabel[9] = new JLabel("Ultimos 5", 0);
             for (int i = 0; i < titulosLabel.length; i++) {
-                if (i != 9) {
+                if (i == 0) {
                     rules.gridx = i;
+                    rules.gridwidth = 2;
+                    rules.weightx = 1.0;
+                    rules.fill = GridBagConstraints.BOTH;
+                    titulosLabel[i].setBackground(new Color(75,75,75));
+                    titulosLabel[i].setOpaque(true);
+                    titulosLabel[i].setForeground(Color.white);
+                    tabla.add(titulosLabel[i], rules);
+                    rules.gridwidth = 1;
+                } else if (i > 0 && i < 9) {
+                    rules.gridx = i + 1;
                     rules.weightx = 1.0;
                     rules.fill = GridBagConstraints.BOTH;
                     titulosLabel[i].setBackground(new Color(75,75,75));
@@ -208,7 +252,7 @@ public class Interfaz {
                     titulosLabel[i].setForeground(Color.white);
                     tabla.add(titulosLabel[i], rules);
                 } else if (i == 9) {
-                    rules.gridx = i;
+                    rules.gridx = i + 1;
                     rules.gridwidth = 5;
                     rules.weightx = 1.0;
                     rules.fill = GridBagConstraints.BOTH;
@@ -223,25 +267,27 @@ public class Interfaz {
 
             for (int i = 0; i < equipos.size(); i++) {
 
-            tablaLabels[i][0] = new JLabel(equipos.get(i).getNombre());
-            tablaLabels[i][0].setIcon(equipos.get(i).getEstado());
+            tablaLabels[i][0] = new JLabel(equipos.get(i).getEstado());
 
-            tablaLabels[i][1] = new JLabel(String.valueOf(equipos.get(i).getPartidosJugados()), 0); 
-            tablaLabels[i][2] = new JLabel(String.valueOf(equipos.get(i).getPartidosGanados()), 0); 
-            tablaLabels[i][3] = new JLabel(String.valueOf(equipos.get(i).getPartidosEmpatados()), 0); 
-            tablaLabels[i][4] = new JLabel(String.valueOf(equipos.get(i).getPartidosPerdidos()), 0); 
-            tablaLabels[i][5] = new JLabel(String.valueOf(equipos.get(i).getGolesFavor()), 0); 
-            tablaLabels[i][6] = new JLabel(String.valueOf(equipos.get(i).getGolesContra()), 0); 
-            tablaLabels[i][7] = new JLabel(String.valueOf(equipos.get(i).getDifGol()), 0); 
-            tablaLabels[i][8] = new JLabel(String.valueOf(equipos.get(i).getPuntos()), 0);
+            tablaLabels[i][1] = new JLabel(equipos.get(i).getNombre());
+            tablaLabels[i][1].setIcon(equipos.get(i).getImg());
 
-            tablaLabels[i][9] = new JLabel(equipos.get(i).getUltimosResultados().get(0), 0);
-            tablaLabels[i][10] = new JLabel(equipos.get(i).getUltimosResultados().get(1), 0);
-            tablaLabels[i][11] = new JLabel(equipos.get(i).getUltimosResultados().get(2), 0);
-            tablaLabels[i][12] = new JLabel(equipos.get(i).getUltimosResultados().get(3), 0);
-            tablaLabels[i][13] = new JLabel(equipos.get(i).getUltimosResultados().get(4), 0);
+            tablaLabels[i][2] = new JLabel(String.valueOf(equipos.get(i).getPartidosJugados()), 0); 
+            tablaLabels[i][3] = new JLabel(String.valueOf(equipos.get(i).getPartidosGanados()), 0); 
+            tablaLabels[i][4] = new JLabel(String.valueOf(equipos.get(i).getPartidosEmpatados()), 0); 
+            tablaLabels[i][5] = new JLabel(String.valueOf(equipos.get(i).getPartidosPerdidos()), 0); 
+            tablaLabels[i][6] = new JLabel(String.valueOf(equipos.get(i).getGolesFavor()), 0); 
+            tablaLabels[i][7] = new JLabel(String.valueOf(equipos.get(i).getGolesContra()), 0); 
+            tablaLabels[i][8] = new JLabel(String.valueOf(equipos.get(i).getDifGol()), 0); 
+            tablaLabels[i][9] = new JLabel(String.valueOf(equipos.get(i).getPuntos()), 0);
+
+            tablaLabels[i][10] = new JLabel(equipos.get(i).getUltimosResultados().get(0), 0);
+            tablaLabels[i][11] = new JLabel(equipos.get(i).getUltimosResultados().get(1), 0);
+            tablaLabels[i][12] = new JLabel(equipos.get(i).getUltimosResultados().get(2), 0);
+            tablaLabels[i][13] = new JLabel(equipos.get(i).getUltimosResultados().get(3), 0);
+            tablaLabels[i][14] = new JLabel(equipos.get(i).getUltimosResultados().get(4), 0);
             
-            for (int j = 0; j < 14; j++) {
+            for (int j = 0; j < 15; j++) {
                 rules.gridx = j;
                 rules.gridwidth = 1;
                 rules.gridheight = 1;
@@ -258,14 +304,24 @@ public class Interfaz {
                 }
             }
             }
-        } else if (maxOMini.getText().equals("Ver +")) { //si el boton dice ver mas entonces esta seleccionada la opcion de tabla pequeña
+        } else if (this.mostrarMasMenosButton.getText().equals("Ver +")) { //si el boton dice ver mas entonces esta seleccionada la opcion de tabla pequeña
             titulosLabel[0] = new JLabel("Equipo", 0);
             titulosLabel[1] = new JLabel("DG", 0);
             titulosLabel[2] = new JLabel("Puntos", 0);
             titulosLabel[3] = new JLabel("Ultimos 5", 0);
             for (int i = 0; i < 4; i++) {
-                if (i != 3) {
+                if (i == 0) {
                     rules.gridx = i;
+                    rules.gridwidth = 2;
+                    rules.weightx = 1.0;
+                    rules.fill = GridBagConstraints.BOTH;
+                    titulosLabel[i].setBackground(new Color(75,75,75));
+                    titulosLabel[i].setOpaque(true);
+                    titulosLabel[i].setForeground(Color.white);
+                    tabla.add(titulosLabel[i], rules);
+                    rules.gridwidth = 1;
+                } else if (i > 0 && i < 3) {
+                    rules.gridx = i + 1;
                     rules.weightx = 1.0;
                     rules.fill = GridBagConstraints.BOTH;
                     titulosLabel[i].setBackground(new Color(75,75,75));
@@ -273,7 +329,7 @@ public class Interfaz {
                     titulosLabel[i].setForeground(Color.white);
                     tabla.add(titulosLabel[i], rules);
                 } else if (i == 3) {
-                    rules.gridx = i;
+                    rules.gridx = i + 1;
                     rules.gridwidth = 5;
                     rules.weightx = 1.0;
                     rules.fill = GridBagConstraints.BOTH;
@@ -287,19 +343,21 @@ public class Interfaz {
             }
             for (int i = 0; i < equipos.size(); i++) {
 
-            tablaLabels[i][0] = new JLabel(equipos.get(i).getNombre());
-            tablaLabels[i][0].setIcon(equipos.get(i).getEstado());
+            tablaLabels[i][0] = new JLabel(equipos.get(i).getEstado());
 
-            tablaLabels[i][1] = new JLabel(String.valueOf(equipos.get(i).getDifGol()), 0); 
-            tablaLabels[i][2] = new JLabel(String.valueOf(equipos.get(i).getPuntos()), 0);
+            tablaLabels[i][1] = new JLabel(equipos.get(i).getNombre());
+            tablaLabels[i][1].setIcon(equipos.get(i).getImg());
 
-            tablaLabels[i][3] = new JLabel(equipos.get(i).getUltimosResultados().get(0), 0);
-            tablaLabels[i][4] = new JLabel(equipos.get(i).getUltimosResultados().get(1), 0);
-            tablaLabels[i][5] = new JLabel(equipos.get(i).getUltimosResultados().get(2), 0);
-            tablaLabels[i][6] = new JLabel(equipos.get(i).getUltimosResultados().get(3), 0);
-            tablaLabels[i][7] = new JLabel(equipos.get(i).getUltimosResultados().get(4), 0);
+            tablaLabels[i][2] = new JLabel(String.valueOf(equipos.get(i).getDifGol()), 0); 
+            tablaLabels[i][3] = new JLabel(String.valueOf(equipos.get(i).getPuntos()), 0);
+
+            tablaLabels[i][4] = new JLabel(equipos.get(i).getUltimosResultados().get(0), 0);
+            tablaLabels[i][5] = new JLabel(equipos.get(i).getUltimosResultados().get(1), 0);
+            tablaLabels[i][6] = new JLabel(equipos.get(i).getUltimosResultados().get(2), 0);
+            tablaLabels[i][7] = new JLabel(equipos.get(i).getUltimosResultados().get(3), 0);
+            tablaLabels[i][8] = new JLabel(equipos.get(i).getUltimosResultados().get(4), 0);
             
-            for (int j = 0; j < 8; j++) {
+            for (int j = 0; j < 9; j++) {
                 rules.gridx = j;
                 rules.gridwidth = 1;
                 rules.gridheight = 1;
@@ -319,15 +377,12 @@ public class Interfaz {
             }
         }
         pCentral.add(tabla, BorderLayout.CENTER);
-        
-        tabla.revalidate();
-        tabla.repaint();
 
-        ventanaPrincipal.revalidate();
-        ventanaPrincipal.repaint();
+        this.revalidate();
+        this.repaint();
     }
 
-    public static void ordenarColores(ArrayList<Equipo> equipos, JPanel pTabla){
+    public void ordenarColores(ArrayList<Equipo> equipos, JPanel pTabla){
 
         JPanel[] pColors = new JPanel[equipos.size() + 1];
 
@@ -392,7 +447,7 @@ public class Interfaz {
         }
     }
 
-    public static void crearPanelSur(JPanel panel){
+    public void crearPanelSur(JPanel panel){
         panel.setLayout(new GridLayout(4, 2));
         panel.setBorder(new EmptyBorder(10, 10, 10,10));
         JLabel[] lbl = new JLabel[8];
@@ -405,7 +460,7 @@ public class Interfaz {
         lbl[3] = new JLabel("Ganó");
         lbl[3].setIcon(new ImageIcon(img));
         img = new ImageIcon(Interfaz.class.getResource("/images/repechaje.png")).getImage().getScaledInstance(15, 15, Image.SCALE_SMOOTH);
-        lbl[4] = new JLabel("Repechaje");
+        lbl[4] = new JLabel("Posible clasificación");
         lbl[4].setIcon(new ImageIcon(img));
         img = new ImageIcon(Interfaz.class.getResource("/images/perdio.png")).getImage().getScaledInstance(15, 15, Image.SCALE_SMOOTH);
         lbl[5] = new JLabel("Perdió");
