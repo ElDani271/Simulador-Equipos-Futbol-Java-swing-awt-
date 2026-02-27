@@ -12,6 +12,7 @@ import javax.swing.border.EmptyBorder;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
@@ -31,6 +32,7 @@ public class Interfaz extends JFrame {
     }
 
     public Interfaz(Grupo gr){
+        mostrarMasMenosButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         this.setTitle("Posiciones - Grupo " + gr.getNombre());
         FondoPanel panel = new FondoPanel("/images/balon.png");
         this.setContentPane(panel);
@@ -59,6 +61,7 @@ public class Interfaz extends JFrame {
         for (int i = 0; i < 18; i++) {
             final int fecha = i;
             botonesFechas[i] = new JButton("Fecha " + (i + 1));
+            botonesFechas[i].setCursor(new Cursor(Cursor.HAND_CURSOR));
             botonesFechas[i].addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
                     Bib.botonFecha(gr.getCalendarioList().get(fecha), tablaLabels, pTabla, fecha, botonesFechas, gr);
@@ -70,6 +73,7 @@ public class Interfaz extends JFrame {
 
         //Boton de calendario
         JButton calendarioButton = new JButton("Calendario");
+        calendarioButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         panelBotones.add(calendarioButton);
         calendarioButton.addActionListener(__->{
             mostrarCalendario(gr.getCalendarioList());
@@ -82,6 +86,7 @@ public class Interfaz extends JFrame {
         });
 
         JButton azarBtn = new JButton("Jugar auto.");
+        azarBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         
         panelBotones.add(azarBtn);
         azarBtn.addActionListener(e->{

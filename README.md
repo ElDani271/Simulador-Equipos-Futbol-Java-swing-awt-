@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 Simulador-Equipos-Futbol-Java-swing-awt-
 =======
 ## Getting Started
@@ -21,4 +21,4 @@ git remote add origin https://github.com/ElDani271/Simulador-Equipos-F-tbol-Java
 # 2. Subir código
 git branch -M main
 git push -u origin main
->>>>>>> 7623249aa3f7cc6408f4b58862bb8283b12db90b
+

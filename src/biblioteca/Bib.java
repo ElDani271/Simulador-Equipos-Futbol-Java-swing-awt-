@@ -2,6 +2,7 @@ package biblioteca;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -159,6 +160,8 @@ public class Bib {
             nombresVisitante.add(nombreVisitante);
             
         }
+        calcular.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        azrBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         calcular.addActionListener(__ -> {
             try {
                     // Procesar todos los partidos
